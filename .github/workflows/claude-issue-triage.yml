@@ -1,0 +1,86 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: |
+      github.event.sender.type != 'Bot' &&
+      (github.event.action == 'opened' || github.event.changes.title || github.event.changes.body)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: >-
+            --allowedTools "Read,Glob,Grep,Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh label list:*),Bash(gh api:*)"
+          prompt: |
+            Estás analizando el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
+
+            Contexto del proyecto: Tetris vanilla JS (Canvas), sin dependencias ni build ni tests.
+            Lee CLAUDE.md para entender la arquitectura antes de diagnosticar.
+
+            Pasos:
+
+            1. Lee el issue completo:
+               gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json title,body,author
+
+            2. Lista los labels existentes del repo:
+               gh label list --repo ${{ github.repository }}
+               Usa ÚNICAMENTE labels que ya existen en el repo. No crees labels nuevos. No uses
+               "wontfix" (es una decisión humana, no automática).
+
+            3. Explora el código relevante con Read/Glob/Grep (game.js, index.html, style.css,
+               CLAUDE.md) para entender qué parte del sistema toca el issue.
+
+            4. Decide qué labels aplican (p. ej. bug, enhancement, documentation, question,
+               accessibility, good first issue, help wanted, duplicate, invalid) y aplícalos con:
+               gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "label1,label2"
+               Si este es un evento de edición y el issue ya tiene labels de triage previos que ya
+               no aplican, quítalos con --remove-label (solo labels de esta lista, nunca toques
+               labels añadidos manualmente por humanos si no tienes evidencia clara de que sobran).
+
+            5. Escribe un diagnóstico técnico en ESPAÑOL con estas secciones:
+               - Resumen del problema
+               - Labels asignados y justificación
+               - Área afectada (archivos/funciones concretas, ej. `game.js: clearLines()`)
+               - Causa probable / análisis técnico
+               - Propuesta de solución (pasos concretos de implementación)
+               - Riesgos y casos de prueba manuales a verificar
+               - Preguntas abiertas (si falta información para diagnosticar con certeza)
+
+               Este diagnóstico es la base para que alguien implemente la solución después, así
+               que sé concreto y técnico, no genérico.
+
+            6. Publica el diagnóstico como comentario del issue, con un marcador HTML oculto al
+               inicio para poder identificarlo después: <!-- claude-triage -->
+
+               Antes de comentar, busca si ya existe un comentario con ese marcador:
+               gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments --jq '.[] | select(.body | startswith("<!-- claude-triage -->")) | .id'
+
+               Si existe (caso de edición), actualízalo en vez de crear uno nuevo:
+               gh api -X PATCH repos/${{ github.repository }}/issues/comments/<ID> -f body="<nuevo diagnóstico>"
+
+               Si no existe, créalo:
+               gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments -f body="<diagnóstico>"
+
+            No modifiques código ni abras pull requests. Solo labels y el comentario de diagnóstico.
