@@ -59,7 +59,9 @@ jobs:
                no aplican, quítalos con --remove-label (solo labels de esta lista, nunca toques
                labels añadidos manualmente por humanos si no tienes evidencia clara de que sobran).
 
-            5. Escribe un diagnóstico técnico en ESPAÑOL con estas secciones:
+            5. Escribe un diagnóstico técnico en ESPAÑOL, en formato Markdown que GitHub
+               pueda renderizar correctamente (encabezados, listas, bloques de código con
+               ```lenguaje```, etc.), con estas secciones:
                - Resumen del problema
                - Labels asignados y justificación
                - Área afectada (archivos/funciones concretas, ej. `game.js: clearLines()`)
