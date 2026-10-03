@@ -162,6 +162,19 @@ let board,
 	anim;
 let combo, b2b, lastRotate, spin, popups, flashUntil, fall;
 let challenge, saved, pendingChallenge;
+let maxCombo = 0;
+let pendingRecord = null;
+const RECORDS_KEY = "tetris-records";
+const MAX_RECORDS = 5;
+const recordsOverlay = document.getElementById("records-overlay");
+const recordsTitle = document.getElementById("records-title");
+const recordsScore = document.getElementById("records-score");
+const recordsExtra = document.getElementById("records-extra");
+const recordsTable = document.querySelector("#records-table tbody");
+const nameForm = document.getElementById("name-form");
+const nameInput = document.getElementById("name-input");
+const playBtn = document.getElementById("play-btn");
+const resetRecordsBtn = document.getElementById("reset-records-btn");
 let audio = null,
 	muted = false;
 
@@ -469,6 +482,7 @@ function clearLines() {
 				}
 		lines += cleared;
 		combo++;
+		if (combo > maxCombo) maxCombo = combo;
 		const difficult = cleared >= 4 || wasSpin;
 		// power-ups (Gravedad, Bomba) pueden completar más de 4 filas a la vez
 		let base = wasSpin
@@ -854,12 +868,90 @@ function drawNext() {
 			drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
 }
 
+function loadRecords() {
+	const empty = { top: [], bestCombo: 0, maxLines: 0 };
+	try {
+		const r = JSON.parse(localStorage.getItem(RECORDS_KEY));
+		if (!r || !Array.isArray(r.top)) return empty;
+		return {
+			top: r.top
+				.filter((e) => e && Number.isFinite(e.score))
+				.map((e) => ({ name: String(e.name || "---").slice(0, 10), score: e.score }))
+				.slice(0, MAX_RECORDS),
+			bestCombo: Number(r.bestCombo) || 0,
+			maxLines: Number(r.maxLines) || 0,
+		};
+	} catch (e) {
+		return empty;
+	}
+}
+
+function saveRecords(r) {
+	try {
+		localStorage.setItem(RECORDS_KEY, JSON.stringify(r));
+	} catch (e) {}
+}
+
+function renderRecords(highlight) {
+	const r = loadRecords();
+	recordsTable.textContent = "";
+	for (let i = 0; i < MAX_RECORDS; i++) {
+		const e = r.top[i];
+		const tr = document.createElement("tr");
+		if (e && i === highlight) tr.className = "new-record";
+		for (const t of [`${i + 1}.`, e ? e.name : "---", e ? e.score.toLocaleString() : "—"]) {
+			const td = document.createElement("td");
+			td.textContent = t;
+			tr.appendChild(td);
+		}
+		recordsTable.appendChild(tr);
+	}
+	recordsExtra.textContent = `Mejor combo: x${r.bestCombo} · Máx. líneas: ${r.maxLines}`;
+}
+
+function showStart() {
+	recordsTitle.textContent = "TETRIS";
+	recordsScore.textContent = "";
+	nameForm.classList.add("hidden");
+	playBtn.textContent = "Jugar";
+	renderRecords(-1);
+	recordsOverlay.classList.remove("hidden");
+}
+
+function submitRecord(name) {
+	const r = loadRecords();
+	const entry = { name: name.trim().slice(0, 10) || "Anónimo", score: pendingRecord.score };
+	let idx = r.top.findIndex((e) => entry.score > e.score);
+	if (idx < 0) idx = r.top.length;
+	r.top.splice(idx, 0, entry);
+	r.top = r.top.slice(0, MAX_RECORDS);
+	saveRecords(r);
+	pendingRecord = null;
+	nameForm.classList.add("hidden");
+	renderRecords(idx);
+}
+
 function endGame() {
 	gameOver = true;
 	cancelAnimationFrame(animId);
-	overlayTitle.textContent = "GAME OVER";
-	overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
-	overlay.classList.remove("hidden");
+	const r = loadRecords();
+	const qualifies =
+		score > 0 &&
+		(r.top.length < MAX_RECORDS || score > r.top[r.top.length - 1].score);
+	r.bestCombo = Math.max(r.bestCombo, maxCombo);
+	r.maxLines = Math.max(r.maxLines, lines);
+	saveRecords(r);
+	recordsTitle.textContent = "GAME OVER";
+	recordsScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+	playBtn.textContent = "Reiniciar";
+	renderRecords(-1);
+	pendingRecord = qualifies ? { score } : null;
+	nameForm.classList.toggle("hidden", !qualifies);
+	recordsOverlay.classList.remove("hidden");
+	if (qualifies) {
+		nameInput.value = "";
+		nameInput.focus();
+	}
 }
 
 function togglePause() {
@@ -951,6 +1043,7 @@ function init() {
 	anim = null;
 	fall = null;
 	combo = 0;
+	maxCombo = 0;
 	b2b = false;
 	lastRotate = false;
 	spin = false;
@@ -965,11 +1058,13 @@ function init() {
 	spawn();
 	updateHUD();
 	overlay.classList.add("hidden");
+	recordsOverlay.classList.add("hidden");
 	cancelAnimationFrame(animId);
 	animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener("keydown", (e) => {
+	if (e.target && e.target.tagName === "INPUT") return;
 	if (!audio && window.AudioContext) audio = new AudioContext();
 	if (e.code === "KeyM") {
 		muted = !muted;
@@ -1010,6 +1105,25 @@ document.addEventListener("keydown", (e) => {
 
 restartBtn.addEventListener("click", init);
 
+playBtn.addEventListener("click", () => {
+	playBtn.blur();
+	init();
+});
+
+nameForm.addEventListener("submit", (e) => {
+	e.preventDefault();
+	if (pendingRecord) submitRecord(nameInput.value);
+});
+
+resetRecordsBtn.addEventListener("click", () => {
+	resetRecordsBtn.blur();
+	if (!confirm("¿Borrar todos los records?")) return;
+	try {
+		localStorage.removeItem(RECORDS_KEY);
+	} catch (e) {}
+	renderRecords(-1);
+});
+
 themeToggle.addEventListener("click", () => {
 	const light = themeToggle.getAttribute("aria-checked") !== "true";
 	themeToggle.setAttribute("aria-checked", light);
@@ -1019,3 +1133,7 @@ themeToggle.addEventListener("click", () => {
 });
 
 init();
+// Pantalla de inicio: el juego espera al botón "Jugar".
+cancelAnimationFrame(animId);
+gameOver = true;
+showStart();

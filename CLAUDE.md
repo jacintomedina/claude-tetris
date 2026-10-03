@@ -22,3 +22,7 @@ Three files: `index.html` (canvas `#board` 300x600, `#next-canvas` 120x120, HUD 
 - `collide(shape, ox, oy)` is the single collision check; `ny < 0` cells allowed (above board). Used by movement, rotation (`tryRotate` tries kicks `[0,-1,1,-2,2]` horizontally), ghost, and gravity.
 - Scoring in `clearLines()`: `LINE_SCORES[cleared] * level`; level = `floor(lines/10)+1`; `dropInterval = max(100, 1000 - (level-1)*90)`. Soft drop +1/cell, hard drop +2/cell.
 - Input: single `keydown` listener at bottom (Arrows, X rotate, Space hard drop, P pause).
+
+## Records
+
+`#records-overlay` is shown at load (start screen, game held with `gameOver = true` until "Jugar") and by `endGame()` (name form if score qualifies). Data in `localStorage` key `tetris-records`: `{top:[{name,score}] (max 5), bestCombo, maxLines}`; all access via `loadRecords`/`saveRecords` (try/catch). `maxCombo` is tracked per game in `clearLines()`. The keydown handler ignores events from inputs.
