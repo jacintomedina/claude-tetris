@@ -266,3 +266,12 @@ kbd {
   from { transform: scale(1); }
   to { transform: scale(1.15); }
 }
+
+.skin-select {
+  background: var(--panel, transparent);
+  color: inherit;
+  border: 1px solid var(--label);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font: inherit;
+}

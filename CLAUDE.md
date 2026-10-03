@@ -22,3 +22,4 @@ Three files: `index.html` (canvas `#board` 300x600, `#next-canvas` 120x120, HUD 
 - `collide(shape, ox, oy)` is the single collision check; `ny < 0` cells allowed (above board). Used by movement, rotation (`tryRotate` tries kicks `[0,-1,1,-2,2]` horizontally), ghost, and gravity.
 - Scoring in `clearLines()`: `LINE_SCORES[cleared] * level`; level = `floor(lines/10)+1`; `dropInterval = max(100, 1000 - (level-1)*90)`. Soft drop +1/cell, hard drop +2/cell.
 - Input: single `keydown` listener at bottom (Arrows, X rotate, Space hard drop, P pause).
+- Skins: `SKINS` object (`retro`, `neon`, `pastel`, `pixel`), each `{colors, bg, grid, drawBlock}`; `skin` is the active one, switched by `applySkin(name)` (also sets canvas background). `drawBlock()` dispatches to `skin.drawBlock` with `skin.colors[idx]` and adds power-up icons itself; `drawGrid()` uses `skin.grid` or CSS `--grid`. Choice persists in `localStorage` key `tetris-skin`; `#skin-select` blurs after change.
