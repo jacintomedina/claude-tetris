@@ -71,6 +71,22 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+        <div id="pause-menu" class="pause-menu hidden">
+          <button id="resume-btn" class="menu-btn">Reanudar</button>
+          <button id="pause-restart-btn" class="menu-btn">Reiniciar</button>
+          <button id="controls-btn" class="menu-btn" aria-expanded="false">Ver controles</button>
+          <ul id="controls-list" class="controls-list hidden">
+            <li><b>← →</b> Mover</li>
+            <li><b>↓</b> Bajar</li>
+            <li><b>↑ / X</b> Rotar</li>
+            <li><b>Espacio</b> Caída rápida</li>
+            <li><b>P / Esc</b> Pausa</li>
+            <li><b>M</b> Silenciar</li>
+          </ul>
+          <label class="level-select">Nivel inicial
+            <select id="start-level"></select>
+          </label>
+        </div>
       </div>
     </div>
   </div>

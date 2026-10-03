@@ -21,4 +21,4 @@ Three files: `index.html` (canvas `#board` 300x600, `#next-canvas` 120x120, HUD 
 - `board` is `ROWS x COLS` of ints. `0` empty, `1-7` piece type index. Same index selects `COLORS[]` and `PIECES[]` (both index 0 = null).
 - `collide(shape, ox, oy)` is the single collision check; `ny < 0` cells allowed (above board). Used by movement, rotation (`tryRotate` tries kicks `[0,-1,1,-2,2]` horizontally), ghost, and gravity.
 - Scoring in `clearLines()`: `LINE_SCORES[cleared] * level`; level = `floor(lines/10)+1`; `dropInterval = max(100, 1000 - (level-1)*90)`. Soft drop +1/cell, hard drop +2/cell.
-- Input: single `keydown` listener at bottom (Arrows, X rotate, Space hard drop, P pause).
+- Input: single `keydown` listener at bottom (Arrows, X rotate, Space hard drop, P/Escape pause menu; game keys ignored while paused).

@@ -139,6 +139,13 @@ const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlay-title");
 const overlayScore = document.getElementById("overlay-score");
 const restartBtn = document.getElementById("restart-btn");
+const pauseMenu = document.getElementById("pause-menu");
+const resumeBtn = document.getElementById("resume-btn");
+const pauseRestartBtn = document.getElementById("pause-restart-btn");
+const controlsBtn = document.getElementById("controls-btn");
+const controlsList = document.getElementById("controls-list");
+const startLevelSel = document.getElementById("start-level");
+let startLevel = 1;
 const themeToggle = document.getElementById("theme-toggle");
 const powerEl = document.getElementById("power");
 const comboEl = document.getElementById("combo");
@@ -503,7 +510,7 @@ function clearLines() {
 
 		if (!challenge) {
 			const prevLevel = level;
-			level = Math.floor(lines / 10) + 1;
+			level = startLevel + Math.floor(lines / 10);
 			dropInterval = Math.max(100, 1000 - (level - 1) * 90);
 			if (level > prevLevel && level >= 3 && level % 2 === 1)
 				pendingChallenge = true;
@@ -859,6 +866,8 @@ function endGame() {
 	cancelAnimationFrame(animId);
 	overlayTitle.textContent = "GAME OVER";
 	overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+	pauseMenu.classList.add("hidden");
+	restartBtn.classList.remove("hidden");
 	overlay.classList.remove("hidden");
 }
 
@@ -866,6 +875,9 @@ function togglePause() {
 	if (gameOver) return;
 	paused = !paused;
 	if (!paused) {
+		overlay.classList.add("hidden");
+		pauseMenu.classList.add("hidden");
+		if (document.activeElement) document.activeElement.blur();
 		lastTime = performance.now();
 		if (frozenUntil > pausedAt) frozenUntil += lastTime - pausedAt;
 		if (anim) anim.start += lastTime - pausedAt;
@@ -882,6 +894,10 @@ function togglePause() {
 		pausedAt = performance.now();
 		overlayTitle.textContent = "PAUSA";
 		overlayScore.textContent = "";
+		restartBtn.classList.add("hidden");
+		pauseMenu.classList.remove("hidden");
+		controlsList.classList.add("hidden");
+		controlsBtn.setAttribute("aria-expanded", "false");
 		overlay.classList.remove("hidden");
 	}
 }
@@ -941,10 +957,10 @@ function init() {
 	board = createBoard();
 	score = 0;
 	lines = 0;
-	level = 1;
+	level = startLevel;
 	paused = false;
 	gameOver = false;
-	dropInterval = 1000;
+	dropInterval = Math.max(100, 1000 - (level - 1) * 90);
 	dropAccum = 0;
 	frozenUntil = 0;
 	pausedAt = 0;
@@ -965,6 +981,9 @@ function init() {
 	spawn();
 	updateHUD();
 	overlay.classList.add("hidden");
+	pauseMenu.classList.add("hidden");
+	restartBtn.classList.remove("hidden");
+	if (document.activeElement) document.activeElement.blur();
 	cancelAnimationFrame(animId);
 	animId = requestAnimationFrame(loop);
 }
@@ -975,7 +994,7 @@ document.addEventListener("keydown", (e) => {
 		muted = !muted;
 		return;
 	}
-	if (e.code === "KeyP") {
+	if (e.code === "KeyP" || e.code === "Escape") {
 		togglePause();
 		return;
 	}
@@ -1009,6 +1028,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 restartBtn.addEventListener("click", init);
+pauseRestartBtn.addEventListener("click", init);
+resumeBtn.addEventListener("click", togglePause);
+controlsBtn.addEventListener("click", () => {
+	const open = controlsList.classList.toggle("hidden") === false;
+	controlsBtn.setAttribute("aria-expanded", open);
+	controlsBtn.blur();
+});
+for (let i = 1; i <= 10; i++) startLevelSel.add(new Option(i, i));
+startLevelSel.addEventListener("change", () => {
+	startLevel = Number(startLevelSel.value);
+	startLevelSel.blur(); // evita que las flechas cambien el selector
+});
 
 themeToggle.addEventListener("click", () => {
 	const light = themeToggle.getAttribute("aria-checked") !== "true";
