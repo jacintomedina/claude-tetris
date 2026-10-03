@@ -247,6 +247,16 @@ kbd {
   background: var(--accent-hover);
 }
 
+.value.challenge-text {
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.value.challenge-on {
+  color: #ffb74d;
+}
+
 .value.combo-hot {
   color: #ff7043;
   animation: combo-pulse 0.6s ease-in-out infinite alternate;
